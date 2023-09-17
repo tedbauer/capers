@@ -7,13 +7,13 @@ use std::io::Write;
 mod scanner;
 
 fn run(source: &str) {
-    let tokens = scanner::scan_tokens(source);
+    let tokens = scanner::scan_tokens(source.to_string());
     println!("{:?}", tokens);
 }
 
 fn execute_repl() {
-    let mut input = String::new();
     loop {
+        let mut input = String::new();
         io::stdout().write_all(b"> ").unwrap();
         io::stdout().flush().unwrap();
         io::stdin().read_line(&mut input).unwrap();

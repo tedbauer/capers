@@ -1,3 +1,5 @@
+use anyhow::{anyhow, Error};
+
 #[derive(Debug)]
 pub enum TokenType {
     LeftParen,
@@ -48,51 +50,105 @@ pub struct Token {
 }
 
 struct Scanner {
+    source: String,
     start: usize,
     current: usize,
     line: usize,
 }
 
-fn create_token(scanner: &Scanner, source: &str, token_type: TokenType) -> Token {
-    Token {
-        token_type,
-        lexeme: source[scanner.start..scanner.current+1].to_string(),
-        line: scanner.line,
+impl Scanner {
+    fn scan_token(&mut self) -> Result<Option<Token>, Error> {
+        match self.consume() {
+            Some('(') => Ok(Some(self.create_token(TokenType::LeftParen))),
+            Some(')') => Ok(Some(self.create_token(TokenType::RightParen))),
+            Some('{') => Ok(Some(self.create_token(TokenType::LeftBrace))),
+            Some('}') => Ok(Some(self.create_token(TokenType::RightBrace))),
+            Some(',') => Ok(Some(self.create_token(TokenType::Comma))),
+            Some('.') => Ok(Some(self.create_token(TokenType::Dot))),
+            Some('-') => Ok(Some(self.create_token(TokenType::Minus))),
+            Some('+') => Ok(Some(self.create_token(TokenType::Plus))),
+            Some(';') => Ok(Some(self.create_token(TokenType::Semicolon))),
+            Some('*') => Ok(Some(self.create_token(TokenType::Star))),
+            Some('\n') => Ok(None),
+            Some('!') => Ok(Some(self.peek_and_decide(
+                '=',
+                TokenType::BangEqual,
+                TokenType::Bang,
+            ))),
+            Some('=') => Ok(Some(self.peek_and_decide(
+                '=',
+                TokenType::EqualEqual,
+                TokenType::Equal,
+            ))),
+            Some('<') => Ok(Some(self.peek_and_decide(
+                '=',
+                TokenType::LessEqual,
+                TokenType::Less,
+            ))),
+            Some('>') => Ok(Some(self.peek_and_decide(
+                '=',
+                TokenType::GreaterEqual,
+                TokenType::Greater,
+            ))),
+            Some(c) => Err(anyhow!(format!(
+                "unrecognized character on line {}: {}",
+                self.line, c
+            ))),
+            None => Ok(None),
+        }
+    }
+
+    fn create_token(&self, token_type: TokenType) -> Token {
+        Token {
+            token_type,
+            lexeme: self.source[self.start..self.current].to_string(),
+            line: self.line,
+        }
+    }
+
+    fn consume(&mut self) -> Option<char> {
+        let result = self.source.chars().nth(self.current);
+        self.current += 1;
+        result
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.source.chars().nth(self.current)
+    }
+
+    fn peek_and_decide(
+        &mut self,
+        candidate: char,
+        token_if_match: TokenType,
+        token_if_no_match: TokenType,
+    ) -> Token {
+        match self.peek() {
+            Some(c) if c == candidate => {
+                self.consume();
+                self.create_token(token_if_match)
+            }
+            Some(_) | None => self.create_token(token_if_no_match),
+        }
     }
 }
 
-fn scan_token(source: &str, scanner: &mut Scanner) -> Option<Token> {
-    let result = match source.chars().nth(scanner.current) {
-        Some('(') => Some(create_token(scanner, source, TokenType::LeftParen)),
-        Some(')') => Some(create_token(scanner, source, TokenType::RightParen)),
-        Some('{') => Some(create_token(scanner, source, TokenType::LeftBrace)),
-        Some('}') => Some(create_token(scanner, source, TokenType::RightBrace)),
-        Some(',') => Some(create_token(scanner, source, TokenType::Comma)),
-        Some('.') => Some(create_token(scanner, source, TokenType::Dot)),
-        Some('-') => Some(create_token(scanner, source, TokenType::Minus)),
-        Some('+') => Some(create_token(scanner, source, TokenType::Plus)),
-        Some(';') => Some(create_token(scanner, source, TokenType::Semicolon)),
-        Some('*') => Some(create_token(scanner, source, TokenType::Star)),
-        Some(c) => None,
-        None => None
-    };
-    scanner.current += 1;
-    result
-}
-
-pub fn scan_tokens(source: &str) -> Vec<Token> {
+pub fn scan_tokens(source: String) -> Vec<Token> {
+    let source_length = source.len();
     let mut result = Vec::new();
     let mut scanner = Scanner {
         start: 1,
         current: 0,
         line: 1,
+        source,
     };
 
-    while scanner.current < source.len() {
+    while scanner.current < source_length {
         scanner.start = scanner.current;
-        let token = scan_token(source, &mut scanner);
-        if let Some(t) = token {
-            result.push(t);
+        let token = scanner.scan_token();
+        match token {
+            Ok(Some(t)) => result.push(t),
+            Ok(None) => (),
+            Err(err) => println!("{}", err),
         }
     }
     result
