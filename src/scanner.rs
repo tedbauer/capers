@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Error};
+use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TokenType {
     LeftParen,
     RightParen,
@@ -101,6 +102,7 @@ impl Scanner {
             }
             Some('"') => self.consume_string().map(|t| Some(t)),
             Some(c) if c.is_digit(10) => self.consume_number().map(|t| Some(t)),
+            Some(c) if c.is_alphanumeric() => Ok(Some(self.consume_identifier())),
             Some(c) => Err(anyhow!(format!(
                 "unrecognized character on line {}: {}",
                 self.line, c
@@ -212,6 +214,45 @@ impl Scanner {
             lexeme: self.source[self.start..self.current - 1].to_string(),
             line: self.line,
         })
+    }
+
+    fn consume_identifier(&mut self) -> Token {
+        loop {
+            match self.consume() {
+                Some(c) if c.is_alphanumeric() => (),
+                Some(_) | None => break,
+            }
+        }
+
+        let keyword_to_type: HashMap<String, TokenType> = HashMap::from([
+            ("and".to_string(), TokenType::And),
+            ("class".to_string(), TokenType::Class),
+            ("else".to_string(), TokenType::Else),
+            ("false".to_string(), TokenType::False),
+            ("for".to_string(), TokenType::For),
+            ("fun".to_string(), TokenType::Fun),
+            ("if".to_string(), TokenType::If),
+            ("nil".to_string(), TokenType::Nil),
+            ("or".to_string(), TokenType::Or),
+            ("print".to_string(), TokenType::Print),
+            ("return".to_string(), TokenType::Return),
+            ("super".to_string(), TokenType::Super),
+            ("this".to_string(), TokenType::This),
+            ("true".to_string(), TokenType::True),
+            ("var".to_string(), TokenType::Var),
+            ("while".to_string(), TokenType::While),
+        ]);
+
+        let lexeme = self.source[self.start..self.current-1].to_string();
+        let token_type = match keyword_to_type.get(&lexeme.clone()) {
+            Some(type_) => type_,
+            None => &TokenType::Identifier,
+        };
+        Token {
+            token_type: token_type.clone(),
+            lexeme,
+            line: self.line,
+        }
     }
 }
 
