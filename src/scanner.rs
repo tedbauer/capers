@@ -99,6 +99,8 @@ impl Scanner {
                     Ok(Some(self.create_token(TokenType::Slash)))
                 }
             }
+            Some('"') => self.consume_string().map(|t| Some(t)),
+            Some(c) if c.is_digit(10) => self.consume_number().map(|t| Some(t)),
             Some(c) => Err(anyhow!(format!(
                 "unrecognized character on line {}: {}",
                 self.line, c
@@ -125,6 +127,10 @@ impl Scanner {
         self.source.chars().nth(self.current)
     }
 
+    fn peek_next(&self) -> Option<char> {
+        self.source.chars().nth(self.current + 1)
+    }
+
     fn peek_and_decide(
         &mut self,
         candidate: char,
@@ -147,13 +153,65 @@ impl Scanner {
                     match self.consume() {
                         Some('\n') => break,
                         Some(_) => (),
-                        None => break
+                        None => break,
                     }
                 }
                 true
             }
             _ => false,
         }
+    }
+
+    fn consume_string(&mut self) -> Result<Token, Error> {
+        loop {
+            match self.consume() {
+                Some('\n') => self.line += 1,
+                Some('"') => break,
+                Some(_) => (),
+                None => {
+                    return Err(anyhow!(format!(
+                        "unterminated string on line {}",
+                        self.line
+                    )))
+                }
+            }
+        }
+        Ok(Token {
+            token_type: TokenType::String,
+            lexeme: self.source[self.start + 1..self.current - 1].to_string(),
+            line: self.line,
+        })
+    }
+
+    fn consume_number(&mut self) -> Result<Token, Error> {
+        loop {
+            match self.consume() {
+                Some(c) if c.is_digit(10) => (),
+                Some(c) if c == '.' => match self.peek_next() {
+                    Some(next) if next.is_digit(10) => loop {
+                        match self.consume() {
+                            Some(c) if c.is_digit(10) => (),
+                            Some(_) | None => {
+                                return Ok(Token {
+                                    token_type: TokenType::Number,
+                                    lexeme: self.source[self.start..self.current - 1].to_string(),
+                                    line: self.line,
+                                })
+                            }
+                        }
+                    },
+                    Some(_) | None => {
+                        return Err(anyhow!(format!("invalid number on line {}", self.line)))
+                    }
+                },
+                Some(_) | None => break,
+            }
+        }
+        Ok(Token {
+            token_type: TokenType::Number,
+            lexeme: self.source[self.start..self.current - 1].to_string(),
+            line: self.line,
+        })
     }
 }
 
