@@ -70,6 +70,8 @@ impl Scanner {
             Some(';') => Ok(Some(self.create_token(TokenType::Semicolon))),
             Some('*') => Ok(Some(self.create_token(TokenType::Star))),
             Some('\n') => Ok(None),
+            Some(' ') => Ok(None),
+            Some('\t') => Ok(None),
             Some('!') => Ok(Some(self.peek_and_decide(
                 '=',
                 TokenType::BangEqual,
@@ -90,6 +92,13 @@ impl Scanner {
                 TokenType::GreaterEqual,
                 TokenType::Greater,
             ))),
+            Some('/') => {
+                if self.consume_comment() {
+                    Ok(None)
+                } else {
+                    Ok(Some(self.create_token(TokenType::Slash)))
+                }
+            }
             Some(c) => Err(anyhow!(format!(
                 "unrecognized character on line {}: {}",
                 self.line, c
@@ -128,6 +137,22 @@ impl Scanner {
                 self.create_token(token_if_match)
             }
             Some(_) | None => self.create_token(token_if_no_match),
+        }
+    }
+
+    fn consume_comment(&mut self) -> bool {
+        match self.peek() {
+            Some('/') => {
+                loop {
+                    match self.consume() {
+                        Some('\n') => break,
+                        Some(_) => (),
+                        None => break
+                    }
+                }
+                true
+            }
+            _ => false,
         }
     }
 }
