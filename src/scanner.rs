@@ -243,7 +243,7 @@ impl Scanner {
             ("while".to_string(), TokenType::While),
         ]);
 
-        let lexeme = self.source[self.start..self.current-1].to_string();
+        let lexeme = self.source[self.start..self.current - 1].to_string();
         let token_type = match keyword_to_type.get(&lexeme.clone()) {
             Some(type_) => type_,
             None => &TokenType::Identifier,
