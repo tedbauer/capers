@@ -5,15 +5,17 @@ use std::io;
 use std::io::Write;
 
 mod ast;
+mod emit;
 mod parser;
 mod scanner;
 mod vm;
 
 fn run(source: &str) {
     let tokens = scanner::scan_tokens(source.to_string());
-    let ast = parser::parse(&tokens);
-    println!("{:?}", tokens);
-    println!("{:?}", ast);
+    println!("{:?}", &tokens);
+
+    let chunk = emit::emit(tokens);
+    println!("{:?}", chunk);
 }
 
 fn execute_repl() {
@@ -23,8 +25,13 @@ fn execute_repl() {
         io::stdout().flush().unwrap();
         io::stdin().read_line(&mut input).unwrap();
         // run(&input);
+        let tokens = scanner::scan_tokens(input.to_string());
+        println!("{:?}", &tokens);
 
-        vm::execute();
+        let chunk = emit::emit(tokens);
+        println!("{:?}", chunk);
+
+        vm::execute(chunk);
     }
 }
 

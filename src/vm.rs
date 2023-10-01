@@ -2,7 +2,7 @@ use std::mem::transmute;
 
 #[derive(Debug)]
 #[repr(u8)]
-enum OpCode {
+pub enum OpCode {
     Return,
     Constant,
     Negate,
@@ -12,10 +12,30 @@ enum OpCode {
     // Divide,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Chunk {
-    code: Vec<u8>,
-    constant_pool: Vec<f32>,
+    pub code: Vec<u8>,
+    pub constant_pool: Vec<f32>,
+
+    constant_pool_top: u8
+}
+
+impl Chunk {
+    pub fn new() -> Self {
+        Self {
+        code: Vec::new(),
+        constant_pool: Vec::new(),
+        constant_pool_top: 0
+        }
+    }
+
+    pub fn add_constant(&mut self, constant: f32) {
+        self.code.push(OpCode::Constant as u8);
+        self.code.push(self.constant_pool_top);
+
+        self.constant_pool.push(constant);
+        self.constant_pool_top += 1;
+    }
 }
 
 struct VirtualMachine {
@@ -45,19 +65,19 @@ enum InterpretResult {
 }
 
 // fn disassemble_chunk(chunk: &Chunk) {
-  //   let mut byte = 0;
-    // while byte < chunk.code.len() {
-      //   let op_code: OpCode = unsafe { transmute::<u8, OpCode>(chunk.code[byte]) };
-        // println!("Opcode: {:?}", op_code);
-        // match op_code {
-          //   OpCode::Return => (),
-            // OpCode::Constant => {
-              //   byte += 1;
-                // println!("{:?}", chunk.constant_pool[chunk.code[byte] as usize]);
-            // },
-        // }
-        // byte += 1;
-    // }
+//   let mut byte = 0;
+// while byte < chunk.code.len() {
+//   let op_code: OpCode = unsafe { transmute::<u8, OpCode>(chunk.code[byte]) };
+// println!("Opcode: {:?}", op_code);
+// match op_code {
+//   OpCode::Return => (),
+// OpCode::Constant => {
+//   byte += 1;
+// println!("{:?}", chunk.constant_pool[chunk.code[byte] as usize]);
+// },
+// }
+// byte += 1;
+// }
 // }
 
 fn run(chunk: &Chunk) -> InterpretResult {
@@ -92,7 +112,8 @@ fn run(chunk: &Chunk) -> InterpretResult {
     InterpretResult::Ok
 }
 
-pub fn execute() {
+pub fn execute(chunk: Chunk) {
+    /*
     let mut code = Vec::new();
 
     code.push(OpCode::Constant as u8);
@@ -111,4 +132,6 @@ pub fn execute() {
         code,
         constant_pool,
     });
+    */
+    run(&chunk);
 }
