@@ -18,7 +18,7 @@ pub enum OpCode {
     Add,
     Subtract,
     Multiply,
-    // Divide,
+    //Divide,
 }
 
 #[derive(Clone, Debug)]
@@ -95,22 +95,6 @@ enum InterpretResult {
     RuntimeError,
 }
 
-// fn disassemble_chunk(chunk: &Chunk) {
-//   let mut byte = 0;
-// while byte < chunk.code.len() {
-//   let op_code: OpCode = unsafe { transmute::<u8, OpCode>(chunk.code[byte]) };
-// println!("Opcode: {:?}", op_code);
-// match op_code {
-//   OpCode::Return => (),
-// OpCode::Constant => {
-//   byte += 1;
-// println!("{:?}", chunk.constant_pool[chunk.code[byte] as usize]);
-// },
-// }
-// byte += 1;
-// }
-// }
-
 fn run(chunk: &Chunk) -> InterpretResult {
     let mut vm = VirtualMachine {
         chunk: chunk.clone(),
@@ -140,8 +124,8 @@ fn run(chunk: &Chunk) -> InterpretResult {
                 vm.push(a + b);
             }
             OpCode::Subtract => {
-                let a = vm.pop();
                 let b = vm.pop();
+                let a = vm.pop();
                 vm.push(a - b);
             }
             OpCode::Multiply => {

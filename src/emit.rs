@@ -48,6 +48,7 @@ fn try_push_value(token: Token, chunk_acc: &mut Chunk) -> Result<(), Error> {
 fn op_power(token: &Token) -> Result<u8, Error> {
     match token.token_type {
         TokenType::Plus => Ok(5),
+        TokenType::Minus => Ok(5),
         TokenType::Star => Ok(9),
         _ => Err(anyhow!("tried using op_power on non-op token: {:?}", token)),
     }
@@ -89,7 +90,7 @@ fn expr_emit(
         let mut push_more = true;
         match op.clone() {
             Some(op) => {
-                if op_power(&op).unwrap() < max_power {
+                if op_power(&op).unwrap() <= max_power {
                     println!("saw {}, returning", op_power(&op).unwrap());
                     push_more = false;
                 }
