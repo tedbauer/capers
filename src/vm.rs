@@ -1,4 +1,13 @@
+use std::fmt::Display;
+use std::fmt::Formatter;
 use std::mem::transmute;
+
+#[repr(C)]
+union Value {
+    number: f32,
+    boolean: bool,
+    nil: (),
+}
 
 #[derive(Debug)]
 #[repr(u8)]
@@ -7,8 +16,8 @@ pub enum OpCode {
     Constant,
     Negate,
     Add,
-    // Subtract,
-    // Multiply,
+    Subtract,
+    Multiply,
     // Divide,
 }
 
@@ -17,15 +26,37 @@ pub struct Chunk {
     pub code: Vec<u8>,
     pub constant_pool: Vec<f32>,
 
-    constant_pool_top: u8
+    constant_pool_top: u8,
+}
+
+impl Display for Chunk {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        let mut byte = 0;
+        while byte < self.code.len() {
+            let op_code: OpCode = unsafe { transmute::<u8, OpCode>(self.code[byte]) };
+            print!("{:?}", op_code);
+            match op_code {
+                OpCode::Constant => {
+                    byte += 1;
+                    println!(
+                        " : {}",
+                        self.constant_pool[self.code[byte as usize] as usize]
+                    );
+                }
+                _ => println!(""),
+            }
+            byte += 1;
+        }
+        Ok(())
+    }
 }
 
 impl Chunk {
     pub fn new() -> Self {
         Self {
-        code: Vec::new(),
-        constant_pool: Vec::new(),
-        constant_pool_top: 0
+            code: Vec::new(),
+            constant_pool: Vec::new(),
+            constant_pool_top: 0,
         }
     }
 
@@ -91,7 +122,9 @@ fn run(chunk: &Chunk) -> InterpretResult {
         let op_code: OpCode = unsafe { transmute::<u8, OpCode>(vm.chunk.code[vm.ip as usize]) };
         match op_code {
             OpCode::Return => {
-                println!("{:?}", vm.pop());
+                let res = vm.pop();
+                println!("{:?}", res);
+                vm.push(res);
             }
             OpCode::Constant => {
                 vm.ip += 1;
@@ -106,6 +139,16 @@ fn run(chunk: &Chunk) -> InterpretResult {
                 let b = vm.pop();
                 vm.push(a + b);
             }
+            OpCode::Subtract => {
+                let a = vm.pop();
+                let b = vm.pop();
+                vm.push(a - b);
+            }
+            OpCode::Multiply => {
+                let a = vm.pop();
+                let b = vm.pop();
+                vm.push(a * b);
+            }
         };
         vm.ip += 1;
     }
@@ -113,25 +156,6 @@ fn run(chunk: &Chunk) -> InterpretResult {
 }
 
 pub fn execute(chunk: Chunk) {
-    /*
-    let mut code = Vec::new();
-
-    code.push(OpCode::Constant as u8);
-    let mut constant_pool: Vec<f32> = Vec::new();
-    constant_pool.push(5.4);
-    code.push(0);
-    code.push(OpCode::Negate as u8);
-    code.push(OpCode::Constant as u8);
-    constant_pool.push(1.0);
-    code.push(1);
-    code.push(OpCode::Add as u8);
-    code.push(OpCode::Return as u8);
-
-    // disassemble_chunk(&Chunk { code, constant_pool })
-    run(&Chunk {
-        code,
-        constant_pool,
-    });
-    */
+    println!("===\n{}", &chunk);
     run(&chunk);
 }
